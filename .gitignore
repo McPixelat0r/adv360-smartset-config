@@ -1,2 +1,8 @@
 /target
 /py-trial
+/src/*.txt
+/info-files
+/samples
+/src/testing_reading
+/src/testing_reading.rs
+

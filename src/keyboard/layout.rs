@@ -1,8 +1,9 @@
 use crate::keyboard::kb_constants::keys::{KbKey, KbPosition, KeyAction};
 use crate::keyboard::kb_constants::tokens;
+use crate::keyboard::parser;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Layer {
     Base,
     Keypad,
@@ -11,6 +12,18 @@ pub enum Layer {
     Fn3,
 }
 
+impl Layer {
+    pub fn from_string(tag: &str) -> Option<Layer> {
+        match tag {
+            "base" => Some(Layer::Base),
+            "keypad" => Some(Layer::Keypad),
+            "function1" => Some(Layer::Fn1),
+            "function2" => Some(Layer::Fn2),
+            "function3" => Some(Layer::Fn3),
+            _ => None, // If it reads a layer that doesn't exist, it returns nothing
+        }
+    }
+}
 pub struct Keyboard {
     pub default_keys: [KbKey; 76],
     layer_overrides: HashMap<Layer, HashMap<KbPosition, KeyAction>>,
@@ -28,17 +41,17 @@ impl Keyboard {
 
     pub fn load_new_profile(&mut self, new_layout_text: &str) {
         self.layer_overrides.clear();
-        // TODO: Parser logic/call parser.rs
+        parser::parse_layout_file(new_layout_text, self);
     }
 
-    pub fn set_overwrite(&mut self, layer: Layer, position: KbPosition, new_action: KeyAction) {
+    pub fn set_override(&mut self, layer: Layer, position: KbPosition, new_action: KeyAction) {
         self.layer_overrides
             .entry(layer)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(position, new_action);
     }
 
-    pub fn clear_overwrite(&mut self, layer: &Layer, position: &KbPosition) {
+    pub fn clear_override(&mut self, layer: &Layer, position: &KbPosition) {
         if let Some(layer_map) = self.layer_overrides.get_mut(layer) {
             layer_map.remove(position);
         }
@@ -56,8 +69,6 @@ impl Keyboard {
 }
 
 fn generate_default_keys() -> [KbKey; 76] {
-    // TODO: make_key calls
-
     [
         // Left hand - outside (pinky) in, top to bottom
         make_key(KbPosition::L_C0_R0, "eql"),
