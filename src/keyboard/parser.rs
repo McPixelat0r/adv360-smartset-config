@@ -3,11 +3,31 @@ use crate::keyboard::kb_constants::tokens::MASTER_DICTIONARY;
 use crate::keyboard::layout::{Keyboard, Layer};
 // use regex::Regex;
 
-fn iterate_brackets(iteration_type: &str, bracketed_str: &str) -> Vec<&'static &KeyAction> {
+enum LineType {
+    LayerLine,
+    RemapLine,
+    MacroLine,
+    SkipLine,
+}
+
+fn match_line_type(line_str: Option<&str>) -> LineType {
+    match line_str.chars().next() {
+        Some('<') => LineType::LayerLine,
+        Some('[') => LineType::RemapLine,
+        Some('{') => LineType::MacroLine,
+        _ => LineType::SkipLine,
+    }
+}
+
+fn iterate_brackets(bracketed_str: &str) -> Vec<&'static str> {
+    match match_line_type(bracketed_str) {
+        LineType::LayerLine => {}
+    }
+
     a = "hi"
 }
 
-pub fn parse_layout_file(raw_file: &str, new_kb: &mut Keyboard) {
+pub fn parse_layout_file(raw_file: &str) {
     let mut active_layer = Layer::Base;
     // let simple_overwrite_re = Regex::new(r"\[([a-z0-9\.\+\-\=\*\/]+)\]{2}").unwrap();
     // let macro_re = Regex::new(r"");
@@ -20,7 +40,7 @@ pub fn parse_layout_file(raw_file: &str, new_kb: &mut Keyboard) {
 
             Some('<') => {
                 active_layer =
-                    Layer::from_string_2(&trimmed_line[1..trimmed_line.len() - 1]).unwrap();
+                    Layer::from_string(&trimmed_line[1..trimmed_line.len() - 1]).unwrap();
                 continue;
             }
 
