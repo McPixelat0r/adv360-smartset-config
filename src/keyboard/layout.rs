@@ -56,17 +56,17 @@ impl Keyboard {
             layer_map.remove(position);
         }
     }
-    pub fn get_active_action(&self, layer: &Layer, position: KbPosition) -> KeyAction {
+pub fn get_active_action(&self, layer: &Layer, position: KbPosition) -> KeyAction {
         self.layer_overrides
             .get(layer)
             .and_then(|layer_map| layer_map.get(&position))
             .cloned()
             .unwrap_or_else(|| {
                 let array_slot = position as usize;
-                KeyAction::Remap(self.default_keys[array_slot].default_token)
+                // Passed None, and removed the trailing semicolon
+                KeyAction::Remap(self.default_keys[array_slot].default_token, None)
             })
     }
-}
 
 fn generate_default_keys() -> [KbKey; 76] {
     [

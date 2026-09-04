@@ -1,5 +1,5 @@
 use crate::keyboard::kb_constants::keys::{KbPosition, KeyAction};
-use crate::keyboard::kb_constants::tokens::MASTER_DICTIONARY;
+use crate::keyboard::kb_constants::tokens::{KeyToken, MASTER_DICTIONARY};
 use crate::keyboard::layout::{Keyboard, Layer};
 // use regex::Regex;
 
@@ -10,24 +10,16 @@ enum LineType {
     SkipLine,
 }
 
-fn match_line_type(line_str: Option<&str>) -> LineType {
-    match line_str.chars().next() {
-        Some('<') => LineType::LayerLine,
-        Some('[') => LineType::RemapLine,
-        Some('{') => LineType::MacroLine,
-        _ => LineType::SkipLine,
-    }
-}
+// fn match_line_type(line_str: Option<&str>) -> LineType {
+// match line_str.chars().next() {
+// Some('<') => LineType::LayerLine,
+// Some('[') => LineType::RemapLine,
+// Some('{') => LineType::MacroLine,
+// _ => LineType::SkipLine,
+// }
+// }
 
-fn iterate_brackets(bracketed_str: &str) -> Vec<&'static str> {
-    match match_line_type(bracketed_str) {
-        LineType::LayerLine => {}
-    }
-
-    a = "hi"
-}
-
-pub fn parse_layout_file(raw_file: &str) {
+pub fn parse_layout_file(raw_file: &str, current_kb: &mut Keyboard) {
     let mut active_layer = Layer::Base;
     // let simple_overwrite_re = Regex::new(r"\[([a-z0-9\.\+\-\=\*\/]+)\]{2}").unwrap();
     // let macro_re = Regex::new(r"");
@@ -44,21 +36,70 @@ pub fn parse_layout_file(raw_file: &str) {
                 continue;
             }
 
-            // TODO: Implement tap and hold case handling
             Some('[') => {
                 if let Some((trigger, action)) = trimmed_line.split_once('>') {
-                    // if let Some(re_captures) = simple_overwrite_re.captures(trimmed_line) {
-                    // let overwrite_kb_position = KbPosition::get_position(&re_captures[0]);
-                    // let new_action = KeyAction::Remap(&MASTER_DICTIONARY[&re_captures[1]]);
-                    // let overwrite_kb_position = KbPosition::get_position(&re_captures[0]);
-                    let remap_split = re_captures.split_once(">");
-                    let remap_pos_str = &remap_split.split_once("[")[1].split_once("]")[0];
-                    let remap_token_str = &remap_split.split_once("[")[1].split_once("]")[0];
-                    let remap_position = KbPosition::get_position(remap_position);
-                    let remap_token = KeyAction::Remap(&MASTER_DICTIONARY[remap_token_str]);
+                    // let remap_key: &str = &trigger.trim_matches(|c| c == '[' || c == ']');
+                    // let new_action: KeyAction;
+                    // let hold_options: Option<(u16, &'static KeyToken)>;
 
-                    new_kb.set_override(active_layer, remap_position, remap_token);
+                    let trigger_pos_str: &str = trigger.trim_matches(|c| c == '[' || c == ']');
+
+                    let trigger_pos = match KbPosition::get_position(trigger_pos_str) {
+                        Some(found_pos) => found_pos,
+                        None => {
+                            println!("Did not find position.");
+                            continue;
+                        }
+                    };
+
+                    let remap_actions_vector: Vec<&str> = action
+                        .split("][")
+                        .map(|s| s.trim_matches(|c| c == '[' || c == ']'))
+                        .filter(|s| !s.is_empty())
+                        .collect();
+
+                    // let (tap_key, hold_data) = match remap_actions_vector.as_slice() {
+
+                    let (tap_key, hold_data) = match remap_actions_vector.as_slice() {
+                        [tap] => (*tap, None),
+                        [tap, duration, hold] => {
+                            let delay_ms: u16 =
+                                (*duration).trim_start_matches("t&h").parse().unwrap_or(200);
+                            let hold_keytoken = match MASTER_DICTIONARY.get(*hold) {
+                                // phf::Map returns a reference, so found_token is already &'static KeyToken
+                                Some(found_token) => found_token,
+
+                                None => {
+                                    println!("Warning: Invalid hold token '{}'", hold);
+                                    continue; // 2. Safely skip this broken line in the config file
+                                }
+                            };
+
+                            (*tap, Some((delay_ms, hold_keytoken)))
+                        }
+
+                        _ => {
+                            println!("Invalid configuration.");
+                            continue;
+                        }
+                    };
+
+                    let tap_key_token = match MASTER_DICTIONARY.get(tap_key) {
+                        Some(tap_token) => {
+                            let new_action: KeyAction = KeyAction::Remap(tap_token, hold_data);
+
+                            current_kb.set_override(active_layer, trigger_pos, new_action);
+                        }
+                        None => {
+                            println!(
+                                "Warning: Invalid tap token '{}' on line: {}",
+                                tap_key, trimmed_line
+                            );
+                        }
+                    };
+                    // new_kb.set_override(active_layer, remap_position, remap_token);
                     // new_kb.set_override(active_layer, overwrite_kb_position.unwrap(), new_action);
+                    // let new_action = ()
                 }
             }
 

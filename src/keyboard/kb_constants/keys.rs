@@ -93,19 +93,13 @@ pub enum KbPosition {
 #[expect(dead_code)]
 #[derive(Debug, Clone)]
 pub enum KeyAction {
-    /// basic remap
-    Remap(Vec<&'static KeyToken>, Vec<&'static KeyToken>),
+    // basic remap
+    Remap(&'static KeyToken, Option<(u16, &'static KeyToken)>),
 
-    /// macro: {trigger}>{action1}{action2}...
-    /// using vec to hold ordered list due to variable macro length
+    // macro: {trigger}>{action1}{action2}...
+    // using vec to hold ordered list due to variable macro length
     Macro(Vec<&'static KeyToken>, Vec<&'static KeyToken>),
-
-    /// tap and hold: [position]>[tap][t&hXXX][hold]
-    // TapAndHold {
-        // tap: &'static KeyToken,
-        // delay_ms: u16,
-        // hold: &'static KeyToken,
-    // },
+    // tap and hold: [position]>[tap][t&hXXX][hold]
 }
 
 #[expect(dead_code)]
